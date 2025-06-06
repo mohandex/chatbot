@@ -144,8 +144,15 @@ bot.on("edited_business_message", async (ctx) => {
 // توجه: API تلگرام محتوای پیام حذف شده را ارائه نمی‌دهد.
 // ما فقط می‌توانیم اطلاع دهیم که پیامی حذف شده است.
 bot.on("deleted_business_messages", async (ctx) => {
-  const userId = "ناشناس (API اطلاعات کاربر را برای پیام‌های حذف شده ارائه نمی‌دهد)"; // یا از ctx.chat.id اگر مربوط به چت خاصی است
-  const chatInfo = ctx.chat;
+  try {
+    // بررسی وجود deleted_business_messages
+    if (!ctx.update.deleted_business_messages) {
+      console.warn("هشدار: deleted_business_messages در آپدیت موجود نیست.");
+      return;
+    }
+    
+    const userId = "ناشناس (API اطلاعات کاربر را برای پیام‌های حذف شده ارائه نمی‌دهد)"; // یا از ctx.chat.id اگر مربوط به چت خاصی است
+    const chatInfo = ctx.chat || { id: 'unknown' };
 
   // Safely access the count of deleted messages
   let count = 0;
@@ -178,6 +185,9 @@ bot.on("deleted_business_messages", async (ctx) => {
     } catch (error) {
       console.error("خطا در ارسال پیام به ادمین:", error);
     }
+  }
+  } catch (error) {
+    console.error("خطا در پردازش پیام‌های حذف شده:", error);
   }
 });
 
