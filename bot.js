@@ -63,6 +63,12 @@ const bot = new Bot(botToken);
 // رویداد برای ذخیره پیام‌های جدید در پایگاه داده
 bot.on("business_message", async (ctx) => {
   try {
+    // بررسی وجود business_message
+    if (!ctx.update.business_message) {
+      console.warn("هشدار: business_message در آپدیت موجود نیست.");
+      return;
+    }
+    
     const messageId = ctx.update.business_message.message_id;
     const chatId = ctx.chat.id.toString();
     const userId = ctx.from.id;
@@ -79,6 +85,12 @@ bot.on("business_message", async (ctx) => {
 // رویداد برای پیام‌های ویرایش شده در چت‌های تجاری
 bot.on("edited_business_message", async (ctx) => {
   try {
+    // بررسی وجود edited_business_message
+    if (!ctx.update.edited_business_message) {
+      console.warn("هشدار: edited_business_message در آپدیت موجود نیست.");
+      return;
+    }
+    
     const userId = ctx.from.id;
     const messageId = ctx.update.edited_business_message.message_id;
     const chatId = ctx.chat.id.toString();
