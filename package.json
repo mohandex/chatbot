@@ -1,0 +1,15 @@
+{
+  "name": "telegram-business-bot",
+  "version": "1.0.0",
+  "description": "A Telegram bot to monitor edited/deleted business messages using grammY.",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "grammy": "^1.24.0",
+    "dotenv": "^16.4.5"
+  },
+  "author": "",
+  "license": "ISC"
+}
