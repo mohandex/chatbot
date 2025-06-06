@@ -60,6 +60,9 @@ if (botToken === "YOUR_BOT_TOKEN") {
 // یک شیء ربات ایجاد کنید
 const bot = new Bot(botToken);
 
+// افزایش حد مجاز listeners برای جلوگیری از هشدار MaxListenersExceeded
+process.setMaxListeners(20);
+
 // رویداد برای ذخیره پیام‌های جدید در پایگاه داده
 bot.on("business_message", async (ctx) => {
   try {
@@ -70,8 +73,8 @@ bot.on("business_message", async (ctx) => {
     }
     
     const messageId = ctx.update.business_message.message_id;
-    const chatId = ctx.chat.id.toString();
-    const userId = ctx.from.id;
+    const chatId = ctx.chat ? ctx.chat.id.toString() : 'unknown';
+    const userId = ctx.from ? ctx.from.id : 'unknown';
     const text = ctx.update.business_message.text || '';
     
     // ذخیره پیام در پایگاه داده
@@ -91,25 +94,23 @@ bot.on("edited_business_message", async (ctx) => {
       return;
     }
     
-    const userId = ctx.from.id;
+    const userId = ctx.from ? ctx.from.id : 'unknown';
     const messageId = ctx.update.edited_business_message.message_id;
-    const chatId = ctx.chat.id.toString();
+    const chatId = ctx.chat ? ctx.chat.id.toString() : 'unknown';
     const newText = ctx.update.edited_business_message.text || '';
-    const chatInfo = ctx.chat;
+    const chatInfo = ctx.chat || { id: 'unknown' };
 
     // دریافت پیام اصلی از پایگاه داده قبل از به‌روزرسانی
     const originalMessage = await getMessage(messageId, chatId);
     
-    let message = `کاربر با شناسه: ${userId}\n`;
-    message += `در چت: ${chatInfo.title || chatInfo.first_name || chatInfo.username || chatInfo.id}\n`;
-    message += `پیام خود را ویرایش کرد.\n\n`;
+    let message = `✏️ editing noticed!\n\n`;
     
     if (originalMessage && originalMessage.text) {
-      message += `📝 متن قبل از ویرایش:\n${originalMessage.text}\n\n`;
-      message += `✏️ متن بعد از ویرایش:\n${newText}\n\n`;
+      message += `old message by ${chatInfo.title || chatInfo.first_name || chatInfo.username || 'Dev'}:${originalMessage.text}\n`;
+      message += `new message:${newText}`;
     } else {
-      message += `✏️ متن ویرایش شده:\n${newText}\n\n`;
-      message += `⚠️ متن اصلی در پایگاه داده یافت نشد (ممکن است قبل از راه‌اندازی ربات ارسال شده باشد)`;
+      message += `new message by ${chatInfo.title || chatInfo.first_name || chatInfo.username || 'Dev'}:${newText}\n`;
+      message += `⚠️ متن اصلی در پایگاه داده یافت نشد`;
     }
 
     // ابتدا پیام ویرایش شده را در پایگاه داده به‌روزرسانی کن
@@ -131,7 +132,7 @@ bot.on("edited_business_message", async (ctx) => {
       console.log("اطلاع رسانی ویرایش پیام به ادمین:\n" + message);
     } else {
       try {
-        await bot.api.sendMessage(adminChatId, "🔄 پیام ویرایش شد:\n" + message);
+        await bot.api.sendMessage(adminChatId, message);
         console.log("اطلاع رسانی ویرایش پیام به ادمین ارسال شد.");
       } catch (error) {
         console.error("خطا در ارسال پیام به ادمین:", error);
@@ -168,11 +169,19 @@ bot.on("deleted_business_messages", async (ctx) => {
     // در صورتی که تعداد دقیق مشخص نباشد، می‌توان یک پیام عمومی‌تر ارسال کرد
   }
 
-  let message = `کاربر در چت: ${chatInfo.title || chatInfo.first_name || chatInfo.username || chatInfo.id}\n`;
-  if (count > 0) {
-    message += `${count} پیام تجاری را حذف کرد.`;
+  let message = `🗑 deletion noticed!\n\n`;
+  message += `message by ${chatInfo.title || chatInfo.first_name || chatInfo.username || 'Dev'}:`;
+  
+  // اگر پیام‌های حذف شده موجود باشند، آخرین پیام را نمایش دهیم
+  if (ctx.update.deleted_business_messages.messages && ctx.update.deleted_business_messages.messages.length > 0) {
+    const lastDeletedMessage = ctx.update.deleted_business_messages.messages[ctx.update.deleted_business_messages.messages.length - 1];
+    if (lastDeletedMessage.text) {
+      message += lastDeletedMessage.text;
+    } else {
+      message += '[پیام بدون متن]';
+    }
   } else {
-    message += `یک یا چند پیام تجاری را حذف کرد (تعداد دقیق نامشخص).`; // Fallback message if count is 0 or messages array is missing
+    message += '[متن پیام در دسترس نیست]';
   }
 
   // به جای YOUR_ADMIN_CHAT_ID شناسه چت ادمین (خودتان) را قرار دهید
@@ -182,7 +191,7 @@ bot.on("deleted_business_messages", async (ctx) => {
     console.log("اطلاع رسانی حذف پیام به ادمین:\n" + message);
   } else {
     try {
-      await bot.api.sendMessage(adminChatId, "پیام حذف شد:\n" + message);
+      await bot.api.sendMessage(adminChatId, message);
       console.log("اطلاع رسانی حذف پیام به ادمین ارسال شد.");
     } catch (error) {
       console.error("خطا در ارسال پیام به ادمین:", error);
@@ -207,11 +216,33 @@ bot.catch((err) => {
 
 // ربات را شروع کنید (با استفاده از long polling)
 async function startBot() {
-  console.log("شروع ربات...");
-  await bot.start();
-  console.log("ربات با موفقیت شروع شد!");
+  try {
+    console.log("شروع ربات...");
+    await bot.start();
+    console.log("ربات با موفقیت شروع شد!");
+  } catch (error) {
+    console.error("خطا در شروع ربات:", error);
+    process.exit(1);
+  }
 }
 
-startBot();
+// Graceful shutdown
+process.once('SIGINT', () => {
+  console.log('\nدریافت سیگنال SIGINT. در حال توقف ربات...');
+  bot.stop();
+  process.exit(0);
+});
+
+process.once('SIGTERM', () => {
+  console.log('\nدریافت سیگنال SIGTERM. در حال توقف ربات...');
+  bot.stop();
+  process.exit(0);
+});
+
+// شروع ربات فقط یک بار
+if (!process.env.BOT_STARTED) {
+  process.env.BOT_STARTED = 'true';
+  startBot();
+}
 
 console.log("فایل bot.js بارگذاری شد. منتظر شروع ربات...");
