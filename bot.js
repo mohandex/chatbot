@@ -126,14 +126,16 @@ bot.on("edited_business_message", async (ctx) => {
       }
     }
     
-    // به‌روزرسانی پیام در پایگاه داده بعد از ارسال پیام به ادمین
-    if (originalMessage && originalMessage.text) {
-      try {
-        await saveMessage(messageId, chatId, userId, newText);
+    // به‌روزرسانی یا ذخیره پیام ویرایش شده در پایگاه داده
+    try {
+      await saveMessage(messageId, chatId, userId, newText);
+      if (originalMessage && originalMessage.text) {
         console.log(`پیام ${messageId} در پایگاه داده به‌روزرسانی شد.`);
-      } catch (error) {
-        console.error("خطا در به‌روزرسانی پیام در پایگاه داده:", error);
+      } else {
+        console.log(`پیام ویرایش شده ${messageId} برای اولین بار در پایگاه داده ذخیره شد.`);
       }
+    } catch (error) {
+      console.error("خطا در ذخیره/به‌روزرسانی پیام ویرایش شده در پایگاه داده:", error);
     }
   } catch (error) {
     console.error("خطا در پردازش پیام ویرایش شده:", error);
