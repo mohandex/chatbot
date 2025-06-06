@@ -137,10 +137,13 @@ bot.on("deleted_business_messages", async (ctx) => {
 
   // Safely access the count of deleted messages
   let count = 0;
-  if (ctx.update.deleted_business_messages && Array.isArray(ctx.update.deleted_business_messages.messages)) {
+  if (ctx.update.deleted_business_messages && 
+      ctx.update.deleted_business_messages.messages && 
+      Array.isArray(ctx.update.deleted_business_messages.messages)) {
     count = ctx.update.deleted_business_messages.messages.length;
   } else {
     console.warn("هشدار: اطلاعات پیام‌های حذف شده (messages) در آپدیت موجود نیست یا فرمت نامعتبر دارد.");
+    console.log("ساختار آپدیت:", JSON.stringify(ctx.update, null, 2));
     // در صورتی که تعداد دقیق مشخص نباشد، می‌توان یک پیام عمومی‌تر ارسال کرد
   }
 
