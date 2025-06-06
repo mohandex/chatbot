@@ -97,7 +97,7 @@ bot.on("edited_business_message", async (ctx) => {
     const newText = ctx.update.edited_business_message.text || '';
     const chatInfo = ctx.chat;
 
-    // دریافت پیام اصلی از پایگاه داده
+    // دریافت پیام اصلی از پایگاه داده قبل از به‌روزرسانی
     const originalMessage = await getMessage(messageId, chatId);
     
     let message = `کاربر با شناسه: ${userId}\n`;
@@ -112,7 +112,19 @@ bot.on("edited_business_message", async (ctx) => {
       message += `⚠️ متن اصلی در پایگاه داده یافت نشد (ممکن است قبل از راه‌اندازی ربات ارسال شده باشد)`;
     }
 
-    // به جای YOUR_ADMIN_CHAT_ID شناسه چت ادمین (خودتان) را قرار دهید
+    // ابتدا پیام ویرایش شده را در پایگاه داده به‌روزرسانی کن
+    try {
+      await saveMessage(messageId, chatId, userId, newText);
+      if (originalMessage && originalMessage.text) {
+        console.log(`پیام ${messageId} در پایگاه داده به‌روزرسانی شد.`);
+      } else {
+        console.log(`پیام ویرایش شده ${messageId} برای اولین بار در پایگاه داده ذخیره شد.`);
+      }
+    } catch (error) {
+      console.error("خطا در ذخیره/به‌روزرسانی پیام ویرایش شده در پایگاه داده:", error);
+    }
+
+    // سپس پیام را به ادمین ارسال کن
     const adminChatId = process.env.ADMIN_CHAT_ID || "YOUR_ADMIN_CHAT_ID";
     if (adminChatId === "YOUR_ADMIN_CHAT_ID"){
       console.warn("هشدار: ADMIN_CHAT_ID تنظیم نشده است. پیام ویرایش شده در کنسول چاپ می‌شود.");
@@ -124,18 +136,6 @@ bot.on("edited_business_message", async (ctx) => {
       } catch (error) {
         console.error("خطا در ارسال پیام به ادمین:", error);
       }
-    }
-    
-    // به‌روزرسانی یا ذخیره پیام ویرایش شده در پایگاه داده
-    try {
-      await saveMessage(messageId, chatId, userId, newText);
-      if (originalMessage && originalMessage.text) {
-        console.log(`پیام ${messageId} در پایگاه داده به‌روزرسانی شد.`);
-      } else {
-        console.log(`پیام ویرایش شده ${messageId} برای اولین بار در پایگاه داده ذخیره شد.`);
-      }
-    } catch (error) {
-      console.error("خطا در ذخیره/به‌روزرسانی پیام ویرایش شده در پایگاه داده:", error);
     }
   } catch (error) {
     console.error("خطا در پردازش پیام ویرایش شده:", error);
